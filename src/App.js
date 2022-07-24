@@ -2,7 +2,7 @@ import './App.css';
 import idl from "./idl.json"
 import {useCallback, useEffect, useState} from "react";
 import {clusterApiUrl, Connection, PublicKey} from "@solana/web3.js";
-import {AnchorProvider, Program, utils, web3} from "@project-serum/anchor";
+import {AnchorProvider, BN, Program, utils, web3} from "@project-serum/anchor";
 import {Buffer} from "buffer"
 
 window.Buffer = Buffer;
@@ -93,6 +93,43 @@ const App = () => {
         }
     };
 
+    const donate = async (publicKey) => {
+        try {
+            const provider = getProvider();
+            const program = new Program(idl, programId, provider);
+
+            await program.rpc.donate(new BN(0.2 * web3.LAMPORTS_PER_SOL), {
+                accounts: {
+                    campaign: publicKey,
+                    user: provider.wallet.publicKey,
+                    systemProgram: SystemProgram.programId,
+                }
+            });
+            console.log("Donated some $SOL to:", publicKey.toString());
+            await getCampaigns();
+        } catch (e) {
+            console.error("Error donating:", e);
+        }
+    }
+
+    const withdraw = async (publicKey) => {
+        try {
+            const provider = getProvider();
+            const program = new Program(idl, programId, provider);
+
+            await program.rpc.withdraw(new BN(0.1 * web3.LAMPORTS_PER_SOL), {
+                accounts: {
+                    campaign: publicKey,
+                    user: provider.wallet.publicKey,
+                }
+            });
+            console.log("Withdraw some $SOL to:", publicKey.toString());
+            await getCampaigns();
+        } catch (e) {
+            console.error("Error withdrawing:", e);
+        }
+    }
+
     const renderNotConnectedContainer = () => <button onClick={connectNewWallet}>Connect Wallet</button>;
     const renderConnectedContainer = () => (
         <>
@@ -108,6 +145,12 @@ const App = () => {
                     </p>
                     <p>{campaign.name}</p>
                     <p>{campaign.description}</p>
+                    <button onClick={() => donate(campaign.pubkey)}>
+                        Click to donate!
+                    </button>
+                    <button onClick={() => withdraw(campaign.pubkey)}>
+                        Click to withdraw!
+                    </button>
                 </>
             ))}
         </>
